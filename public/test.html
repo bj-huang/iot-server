@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <ul id="logWrap">
+        
+    </ul>
+    <button>HHD&HAVEEXISTED&FF</button>
+    <button>HHD&1_1_1:23&1_2_1:2&FF</button>
+    <button>HHD&1_1_1:31&1_2_1:1&FF</button>
+    <button>HHD&1_1_2_12&FF</button>
+    <!-- <script src="/static/js/jquery.js"></script> -->
+    <script>
+        // $(function () {
+        //   console.log('ok')
+        // })
+        window.onload = function () {
+          let btnList = document.getElementsByTagName('button')
+          let logWrap = document.getElementById('logWrap')
+        
+          let socket = new WebSocket('ws://127.0.0.1:3003')
+          socket.onopen = function () {
+            log('socket 连接成功')
+          }
+
+          socket.onmessage = (data) => {
+            console.log(data)
+          }
+
+          for (let i = 0; i < btnList.length; i++) {
+            btnList[i].onclick = function () {
+              let msg = btnList[i].innerHTML
+              msg = msg.replace(/&amp;/g, '&')
+              log('发送 --- ' + msg)
+              socket.send(msg)
+            }
+          }
+
+          function log (msg) {
+            let element = document.createElement('li')
+            element.innerHTML = msg
+            logWrap.appendChild(element)
+            let scrollHeight = logWrap.children.length * 20 - 200
+            if (scrollHeight < 0) scrollHeight = 0
+            logWrap.scrollTop = scrollHeight
+          }
+        }
+    </script>
+    <style>
+        #logWrap {
+            padding: 10px;
+            background: #ccc;
+            height: 500px;
+            list-style: none;
+            overflow: auto;
+        }
+        #logWrap li {
+            height: 20px;
+            color: #fff;
+            line-height: 20px;
+        }
+    </style>
+</body>
+</html>

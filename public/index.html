@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <ul id="logWrap">
+
+    </ul>
+    <div class="control">
+        <div class="row">
+            <div class="wrap">
+                <input type="text" id="handCode">
+                <button id="handBtn">握手</button>
+            </div>
+            <div class="wrap">
+                <input type="text" id="sendData">
+                <button id="sendBtn">发送</button>
+            </div>
+        </div>
+        <ul id="dataList">
+            
+        </ul>
+    </div>
+    <script src="/js/jquery.js"></script>
+    <script>
+        $(function () {
+          let btnList = document.getElementsByTagName('button')
+          let logWrap = document.getElementById('logWrap')
+          $('#handCode').val(window.localStorage.getItem('handCode'))
+
+          let socket = new WebSocket(`ws://${location.hostname}:3003`)
+          socket.onopen = function () {
+            // log('socket 连接成功')
+          }
+
+          socket.onmessage = (res) => {
+            log('接收: ' + res.data)
+          }
+
+          $('#handBtn').click(function () {
+            let handCode = $('#handCode').val()
+            if (handCode) {
+              let msg = JSON.stringify({ type: 'handCode', data: handCode })
+              log('发送: ' + msg)
+              socket.send(msg)
+              window.localStorage.setItem('handCode', handCode)
+            }
+          })
+          $('#sendBtn').click(function () {
+            let data = $('#sendData').val()
+            if (data) {
+              let msg = JSON.stringify({ type: 'send', data: data })
+              log('发送: ' + msg)
+              socket.send(msg)
+            }
+          })
+
+          function log (msg) {
+            let element = document.createElement('li')
+            element.innerHTML = '> ' + msg
+            logWrap.appendChild(element)
+            let scrollHeight = logWrap.children.length * 20 - 200
+            if (scrollHeight < 0) scrollHeight = 0
+            logWrap.scrollTop = scrollHeight
+          }
+          $.ajax({
+            url: '/api/data',
+            success: function (data) {
+              let dataList = $('#dataList')
+              data.result.forEach(element => {
+                // HHD&1_1_1:23&1_2_1:2&FF
+                let id = `${element.deviceId.index}_${element.nodeId.index}_${element.index}`
+                let item = $(`<li id="${id}"><input type="text"><button>${element.name}</button></li>`)
+                item.find('button').click(function () {
+                  let active = item.hasClass('active')
+                  active ? item.removeClass('active') : item.addClass('active')
+                  let id = item.attr('id')
+                  let input = item.find('input').val()
+                  if (id && input != '') {
+                    let sendDataEle = $('#sendData')
+                    let sendData = sendDataEle.val()
+                    let thisCmd = id + ':' + input
+                    if (active) {
+                      sendData = sendData.split('&')
+                      if (sendData[0] == 'HHD' && sendData[sendData.length - 1] == 'FF') {
+                        sendData.forEach((cmd, index) => {
+                          if (index == sendData.length - 1 || index == 0) {
+
+                          } else {
+                            let _cmd = cmd.split(':')
+                            let _thisCmd = thisCmd.split(':')
+                            if (cmd[0] == thisCmd[0]) {
+                              sendData.splice(index, 1)
+                            }
+                          }
+                        })
+                        // sendData.splice(sendData.length - 1, 0, thisCmd)
+                        sendData = sendData.join('&')
+                        sendDataEle.val(sendData)
+                      }
+                    } else {
+                      if (sendData == '') {
+                        sendDataEle.val(`HHD&${thisCmd}&FF`)
+                      } else {
+                        sendData = sendData.split('&')
+                        if (sendData[0] == 'HHD' && sendData[sendData.length - 1] == 'FF') {
+                          sendData.splice(sendData.length - 1, 0, thisCmd)
+                          sendData = sendData.join('&')
+                          sendDataEle.val(sendData)
+                        }
+                      }
+                    }
+                  }
+                })
+                dataList.append(item)
+              })
+    }
+          })
+        })
+    </script>
+    <style>
+        #logWrap {
+            padding: 10px;
+            background: #000;
+            height: 500px;
+            overflow: auto;
+        }
+
+        #logWrap li {
+            height: 20px;
+            color: #fff;
+            line-height: 20px;
+        }
+        ul {
+            padding: 0;
+        }
+        li {
+            list-style: none;
+        }
+        #dataList {
+            overflow: hidden;
+        }
+        #dataList li {
+            float: left;
+            color: #000;
+            line-height: 20px;
+            /* border: 1px solid #ccc; */
+            margin: 2px 10px;
+        }
+        #dataList .active button {
+            background: #f00;
+            color: #fff;
+        }
+        #dataList button {
+            cursor: pointer;
+            border: 1px solid #ccc;
+            padding: 2px 6px;
+        }
+        #dataList input {
+            width: 40px;
+            margin-right: 10px;
+        }
+        .row {
+            display: flex;
+            justify-content: space-between;
+        }
+        .row .wrap input {
+            width: 300px;
+        }
+    </style>
+</body>
+
+</html>
