@@ -65,14 +65,14 @@ function systemStart () {
      */
 
   websocketServer.on('connection', (cb) => {
-    // let cache = getDataCache()
-    // let message = {
-    //     status: '200',
-    //     type: 'data',
-    //     id: 'all',
-    //     data: cache
-    // }
-    // cb(JSON.stringify(message))
+    let cache = getDataCache()
+    let message = {
+      status: '200',
+      type: 'data',
+      id: 'all',
+      data: cache
+    }
+    cb(JSON.stringify(message))
   })
 
   websocketServer.on('data', (data, cb) => {
