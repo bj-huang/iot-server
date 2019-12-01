@@ -7,7 +7,7 @@ module.exports = class TCPServer extends events.EventEmitter {
     super()
     this.port = port
     this.handshake = 'HHS&HANDSHAKE&FF'
-    this.timeout = 3000
+    this.timeout = 10000
     this.whiteList = {}
 
     this.connectionCount = 0
