@@ -1,3 +1,7 @@
+let xlsx = require('node-xlsx').default;
+let fs = require('fs')
+let dayjs = require('dayjs')
+let path = require('path')
 let Warning = require('../models/warning')
 let Report = require('../models/report')
 let Data = require('../models/data')
@@ -144,3 +148,37 @@ exports.analysis = function(req, res, next){
     }
 }
 
+exports.exportExcel = function(req, res){
+    let page = 1
+    let params = {}
+    if(req.query) {
+        if(req.query.deviceId) params.accessId = req.query.deviceId
+        if(req.query.nodeId) params.nodeId = req.query.nodeId
+        if(req.query.dataId) params.dataId = req.query.dataId
+    }
+    Report.count(params, (err, count) => {
+        if(err) {
+            res.json({
+                status: statusCode.ERROR
+            })
+        } else {
+            let report = Report.find(params, 'original time value')
+            report.sort({'_id':-1}).populate('nodeId', 'name').populate('dataId', 'name').exec((err, _report) => {
+                if(err) {
+                    res.json({
+                        status: statusCode.ERROR
+                    })
+                } else {
+                    let excelData = _report.map(({dataId, nodeId, original, value, time}) => [nodeId.name, dataId.name , original, value, dayjs(time).format('YYYY-MM-DD HH:mm:ss')])
+                    excelData.unshift(['节点名称', '数据名称','原始值','转换值','时间'])
+                    var buffer = xlsx.build([{name: "历史数据", data:excelData}], {'!cols': [{ wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }, { wch: 30 }]});
+                    fs.writeFileSync(path.resolve(__dirname, './../public/file/history.xlsx'), buffer)
+                    res.json({
+                        status: statusCode.SUCCESS,
+                        result: '/file/history.xlsx'
+                    })
+                }
+            }) 
+        }
+    })
+}
